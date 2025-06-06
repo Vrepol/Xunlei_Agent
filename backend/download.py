@@ -1,7 +1,7 @@
 # backend/download.py
-
 import time
 import os
+import traceback
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -32,6 +32,7 @@ def start_download(magnet_links: List[str], server_addr: str, headless: bool = T
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
+    # 禁用图片、样式、字体，加快加载速度
     chrome_options.add_experimental_option(
         "prefs",
         {
@@ -42,13 +43,26 @@ def start_download(magnet_links: List[str], server_addr: str, headless: bool = T
     )
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--disable-extensions")
-    # 假设 chromedriver 已装在系统路径 /usr/bin/chromedriver
+
+    # —— 关键一步：指定 Chromium 可执行文件路径 —— #
+    # 在 Raspberry Pi OS 上，apt 安装的 Chromium 可执行通常是 /usr/bin/chromium
+    # 如果你不确定路径，可以在终端里执行 `which chromium` 来查看。
+    chrome_options.binary_location = "/usr/bin/chromium"
+    # 或者：chrome_options.binary_location = "/usr/bin/chromium-browser"
+    # --------------------------------------------------------- #
+
+    # 指定 Chromedriver 路径
     service = Service("/usr/bin/chromedriver")
+    # 让 Chromedriver 输出日志到 /tmp/chromedriver.log，方便排查
+    service.log_path = "/tmp/chromedriver.log"
+    service.verbose = True
 
     try:
         driver = webdriver.Chrome(options=chrome_options, service=service)
     except Exception as e:
-        logs.append(f"[ERROR] 无法启动 ChromeDriver: {e}")
+        # 打印完整 Traceback 到控制台
+        traceback.print_exc()
+        logs.append(f"[ERROR] 无法启动 ChromeDriver: {repr(e)}")
         return "\n".join(logs)
 
     for idx, link in enumerate(magnet_links, start=1):
@@ -81,7 +95,7 @@ def start_download(magnet_links: List[str], server_addr: str, headless: bool = T
             )
             confirm_btn.click()
 
-            # 等待解析完成（可根据实际情况改为更智能的等待）
+            # 等待解析完成
             time.sleep(1)
 
             download_btn = driver.find_element(
@@ -93,7 +107,7 @@ def start_download(magnet_links: List[str], server_addr: str, headless: bool = T
 
             time.sleep(1)
         except Exception as e:
-            logs.append(f"[{idx}] 处理失败: {e}")
+            logs.append(f"[{idx}] 处理失败: {repr(e)}")
 
     driver.quit()
     logs.append(f"已处理 {len(magnet_links)} 条磁力链接。")
