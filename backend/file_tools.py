@@ -98,21 +98,33 @@ def rename_files(
     folder_path: str,
     prefix: str = "NewFile_",
     preview: bool = True,
-    custom_pattern: str = ""
+    custom_pattern: str = "",
+    allow_overwrite: bool = False,
 ) -> List[str]:
     """
-    在 folder_path 下批量重命名文件。
-    1. 若 custom_pattern 不空，先尝试匹配；
-    2. 未匹配，再用 DEFAULT_PATTERN_CONFIG；
-    3. 都不匹配则跳过。
-    preview=True: 只返回“预览”日志；否则执行重命名并返回日志。
-    返回：日志列表。
+    更安全的批量重命名：
+    1. 支持自定义正则；若自定义不匹配，则依次使用 DEFAULT_PATTERN_CONFIG。
+    2. **预检测重复**：形成重命名映射后，先检查是否出现重复目标文件名，
+       或目标文件已存在且不允许覆盖；如发现冲突则记录错误并跳过相应条目。
+    3. preview=True 时仅返回预览日志，不执行写操作。
+
+    参数：
+      folder_path: 待处理文件夹
+      prefix: 新文件名前缀
+      preview: 预览模式
+      custom_pattern: 自定义提取后缀的正则表达式，应至少含一个捕获组
+      allow_overwrite: 是否允许覆盖已存在的同名文件（**默认 False**）
+
+    返回：日志列表
     """
     logs: List[str] = []
+
+    # ---------- 0) 参数校验 ----------
     if not os.path.isdir(folder_path):
         logs.append(f"[ERROR] 文件夹不存在: {folder_path}")
         return logs
 
+    # ---------- 1) 准备匹配规则 ----------
     pattern_config = []
     if custom_pattern.strip():
         try:
@@ -127,17 +139,21 @@ def rename_files(
 
     pattern_config.extend(DEFAULT_PATTERN_CONFIG)
 
-    files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+    # ---------- 2) 收集文件列表 ----------
+    files = [f for f in sorted(os.listdir(folder_path)) if os.path.isfile(os.path.join(folder_path, f))]
     if not files:
         logs.append(f"[INFO] {folder_path} 下没有任何文件")
         return logs
 
-    files.sort()
-    rename_pairs: List[Tuple[str, str]] = []
+    # ---------- 3) 生成重命名计划 ----------
+    rename_pairs: List[Tuple[str, str]] = []  # (old_path, new_path)
+    conflicts: List[str] = []
+    planned_names: set = set()
 
     for old_name in files:
         old_path = os.path.join(folder_path, old_name)
-        _, ext = os.path.splitext(old_name)
+        root, ext = os.path.splitext(old_name)
+
         new_suffix = None
         for rule in pattern_config:
             m = re.search(rule["pattern"], old_name)
@@ -147,22 +163,47 @@ def rename_files(
         if not new_suffix:
             logs.append(f"[跳过] 文件名不符合任何规则: {old_name}")
             continue
+
         new_name = f"{prefix}{new_suffix}{ext}"
         new_path = os.path.join(folder_path, new_name)
+
+        # 冲突检测（计划内 + 目标已存在）
+        if new_name in planned_names:
+            conflicts.append(f"[冲突] 计划内重复目标名: {new_name} (源: {old_name})")
+            continue
+        if os.path.exists(new_path) and not allow_overwrite and os.path.abspath(new_path) != os.path.abspath(old_path):
+            conflicts.append(f"[冲突] 目标已存在: {new_name} (源: {old_name})")
+            continue
+
+        planned_names.add(new_name)
         rename_pairs.append((old_path, new_path))
 
+    # ---------- 4) 处理冲突 ----------
+    if conflicts:
+        logs.extend(conflicts)
+        logs.append("[WARN] 检测到以上冲突，相关文件已被跳过。")
+
+    if not rename_pairs:
+        logs.append("[INFO] 无可执行的重命名任务")
+        return logs
+
+    # ---------- 5) 执行 / 预览 ----------
     if preview:
         logs.append("[预览] 以下文件将被重命名：")
         for old, new in rename_pairs:
             logs.append(f"{os.path.basename(old)} -> {os.path.basename(new)}")
         logs.append("(预览模式，不执行实际重命名)")
     else:
+        success, failed = 0, 0
         for old, new in rename_pairs:
             try:
                 os.rename(old, new)
                 logs.append(f"[已重命名] {os.path.basename(old)} -> {os.path.basename(new)}")
+                success += 1
             except Exception as e:
                 logs.append(f"[重命名失败] {os.path.basename(old)} -> {os.path.basename(new)}, 原因: {e}")
+                failed += 1
+        logs.append(f"[SUMMARY] 成功 {success} 个，失败 {failed} 个，跳过 {len(conflicts)} 个。")
 
     return logs
 

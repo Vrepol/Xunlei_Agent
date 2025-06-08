@@ -61,7 +61,7 @@
 
       <!-- 公共根目录：只输一次 -->
       <label>根目录：</label>
-      <input type="text" id="rootDir" placeholder="/DataBase/downloads" /><br />
+      <input type="text" id="rootDir" value="/DataBase/downloads" /><br />
 
       <!-- 1. 预览子文件夹 -->
       <details open>
@@ -79,10 +79,10 @@
         <div class="section">
           <input type="hidden" id="moveRoot" />
           <label>关键字：</label>
-          <input type="text" id="moveKeyword" placeholder="Key" /><br />
+          <input type="text" id="moveKeyword" placeholder="Keyword" /><br />
           <label>目标文件夹：</label>
-          <input type="text" id="moveTarget" placeholder="/DataBase/电视剧/Name" /><br />
-          <label><input type="checkbox" id="moveCreate" /> 若目标不存在则创建</label><br />
+          <input type="text" id="moveTarget" value="/DataBase/电视剧/Name" /><br />
+          <label><input type="checkbox" id="moveCreate" checked /> 若目标不存在则创建</label><br />
           <label><input type="checkbox" id="moveRecursive" /> 递归子文件夹</label><br />
           <label><input type="checkbox" id="movePreview" checked /> 预览模式</label><br />
           <button id="btnMove">执行移动</button>
@@ -99,7 +99,7 @@
           <label>重命名前缀：</label>
           <input type="text" id="renamePrefix" value="Name - S0E" /><br />
           <label>自定义正则 (可不填)：</label>
-          <input type="text" id="renamePattern" placeholder="E(\\d+)" /><br />
+          <input type="text" id="renamePattern" value="E(\d+)" /><br />
           <label><input type="checkbox" id="renamePreview" checked /> 预览模式</label><br />
           <button id="btnRename">执行重命名</button>
           <pre id="logRename" class="log-box"></pre>
@@ -112,7 +112,7 @@
         <div class="section">
           <input type="hidden" id="deleteRoot" />
           <label>关键字：</label>
-          <input type="text" id="deleteKeyword" placeholder="Key" /><br />
+          <input type="text" id="deleteKeyword" placeholder="Keyword" /><br />
           <label><input type="checkbox" id="deleteRecursive" /> 递归子文件夹</label><br />
           <label><input type="checkbox" id="deletePreview" checked /> 预览模式</label><br />
           <button id="btnDelete">执行删除</button>
