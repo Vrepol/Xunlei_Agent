@@ -64,4 +64,11 @@ body {
     font-size: 14px;
     border: 1px solid #ddd;
   }
-  
+.log-error   { color:#f5222d; font-weight:700; }
+.log-warn    { color:#faad14; font-weight:700; }
+.log-info    { color:#1890ff; }
+.log-success { color:#52c41a; }
+.log-preview { color:#8c8c8c; }
+.log-skip    { color:#8c8c8c; font-style:italic; }
+/* 让长行自动换行，不撑破页面 */
+.log-box div { white-space: pre-wrap; }

@@ -6,12 +6,34 @@ const API_BASE = '';
 
 
 /** 辅助：将数组日志逐行追加到指定 <pre> 区域 */
-function appendLogs(preId, logs) {
+function appendLogs(preId, logs){
   const pre = document.getElementById(preId);
-  pre.textContent = ''; // 清空
-  logs.forEach(line => {
-    pre.textContent += line + '\n';
+  if(!pre) return;          // 容器不存在就直接返回
+
+  pre.innerHTML = '';       // 清空并允许插入 HTML
+  logs.forEach(line=>{
+    const div = document.createElement('div');
+    div.textContent = line;
+
+    if(line.startsWith('[ERROR]') || line.startsWith('[重命名失败]')){
+      div.classList.add('log-error');
+    }else if(line.startsWith('[WARN]') || line.startsWith('[冲突]')){
+      div.classList.add('log-warn');
+    }else if(line.startsWith('[INFO]')){
+      div.classList.add('log-info');
+    }else if(line.startsWith('[已') || line.startsWith('[移动成功]') || line.startsWith('[删除成功]')){
+      div.classList.add('log-success');
+    }else if(line.startsWith('[预览]')){
+      div.classList.add('log-preview');
+    }else if(line.startsWith('[跳过]')){
+      div.classList.add('log-skip');
+    }
+
+    pre.appendChild(div);
   });
+
+  // 自动滚动到底部
+  pre.scrollTop = pre.scrollHeight;
 }
 
 // —— A) 批量下载 —— 
