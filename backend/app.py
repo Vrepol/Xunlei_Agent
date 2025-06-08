@@ -11,7 +11,6 @@ from file_tools import (
     rename_files,
     delete_empty_folders_with_keyword
 )
-
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)  # 允许跨域访问，方便前端在本地调试
 
